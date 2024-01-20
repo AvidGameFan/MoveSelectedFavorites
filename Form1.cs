@@ -37,12 +37,15 @@ namespace MoveSelectedFavorites
         {
             if (e.Data.GetDataPresent(DataFormats.FileDrop))
             {
+                favoritesList = new List<string>();
+
                 string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
                 foreach (string filePath in files)
                 {
                     Console.WriteLine(filePath);
                     //Load file, save list of seeds
-                    favoritesList = new List<string>();
+                    
+                    //TODO: process list(s)
                 }
             }
         }
@@ -86,7 +89,7 @@ namespace MoveSelectedFavorites
             UseWaitCursor = true;
             List<String> copyList = new List<string>();
             //Validate
-            if (favoritesList.Count==0)
+            if (favoritesList.Count == 0)
             {
                 MessageBox.Show("First, load list of favorites.");
                 return;
@@ -94,7 +97,32 @@ namespace MoveSelectedFavorites
             //For each image file in the source folder, 
             //  search contents for one of the listed seeds.
             //  If match found, perform action -- copy to destination folder
-            string[] files = Directory.GetFiles(sourceFolder.Text, "*.png", SearchOption.TopDirectoryOnly);
+            SearchFiles("*.png", "tEXtseed", copyList);
+
+            try 
+            { 
+                //for each file to process, copy
+                foreach (var fileName2 in copyList)
+                {
+                    //Build destination path
+                    FileInfo file = new FileInfo(fileName2);
+                    string originalFileName = file.FullName;
+                    string newFileName = Path.Combine(destinationFolder.Text, file.Name);
+                    File.Copy(originalFileName, newFileName);  //could also use move
+                    //TODO: list files to the window as they are copied
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error.\n\nError message: {ex.Message}\n\n" +
+                $"Details:\n\n{ex.StackTrace}");
+            }
+            UseWaitCursor = false;
+        }
+
+        private void SearchFiles(string filePattern, string searchPattern, List<string> copyList)
+        {
+            string[] files = Directory.GetFiles(sourceFolder.Text, filePattern, SearchOption.TopDirectoryOnly);
             foreach (string fileName in files)
             {
                 //load first part of file in binary -- we don't need the entire file
@@ -104,19 +132,20 @@ namespace MoveSelectedFavorites
                     {
                         using (var reader = new StreamReader(str))
                         {
-                            char[] buffer=new char[2000];
-                            if ((reader.Read(buffer, 0,2000)) != -1)
+                            char[] buffer = new char[2000];
+                            if ((reader.Read(buffer, 0, 2000)) != -1)
                             {
                                 //search for metadata string pattern, and copy until null character
                                 string data = new String(buffer);
-                                int location = data.IndexOf("tEXtseed");
-                                if (location == -1) 
+                                int location = data.IndexOf(searchPattern);
+                                if (location == -1)
                                     continue;
-                                string seedData = data.Substring(location + "tEXtseed".Length + 1, 15);
+                                string seedData = data.Substring(location + searchPattern.Length + 1, 15);
                                 string seed = String.Empty;
                                 foreach (char c in seedData)
                                 {
-                                    if (c > 32768)
+                                    //TODO: it is possible that extra numeric characters may appear at the end, and thus the occasional file won't copy.  Need to revisit the file format.
+                                    if (c < '0' || c > '9')
                                         break;
                                     seed += c;
                                 }
@@ -135,20 +164,14 @@ namespace MoveSelectedFavorites
                     MessageBox.Show($"Security error.\n\nError message: {ex.Message}\n\n" +
                     $"Details:\n\n{ex.StackTrace}");
                 }
-
-                //for each file to process, copy
-                foreach (var fileName2 in copyList)
+                catch (Exception ex)
                 {
-                    //Build destination path
-                    FileInfo file = new FileInfo(fileName2);
-                    string originalFileName = file.FullName;
-                    string newFileName = Path.Combine(destinationFolder.Text, file.Name);
-                    File.Copy(originalFileName, newFileName);  //could also use move
+                    MessageBox.Show($"Error.\n\nError message: {ex.Message}\n\n" +
+                    $"Details:\n\n{ex.StackTrace}");
                 }
-
             }
-            UseWaitCursor = false;
         }
+
         private OpenFileDialog openFileDialog1;
         //see: https://learn.microsoft.com/en-us/dotnet/desktop/winforms/controls/how-to-open-files-using-the-openfiledialog-component?view=netframeworkdesktop-4.8
         private void favoritesButton_Click(object sender, EventArgs e)
@@ -168,6 +191,7 @@ namespace MoveSelectedFavorites
                             {
                                 favoritesList.Add(line);
                             }
+                            favoritesLabel.Text = "Loaded: " + openFileDialog1.FileName;
                             //Process.Start("notepad.exe", filePath);
                         }
                     }
