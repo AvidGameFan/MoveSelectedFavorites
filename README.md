@@ -1,0 +1,2 @@
+# Favorites
+ Copy favorite images
