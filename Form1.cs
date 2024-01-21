@@ -71,7 +71,17 @@ namespace MoveSelectedFavorites
 
         private void selectSource_Click(object sender, EventArgs e)
         {
-            //var folderDialog = new FolderBrowserDialog();
+            if (String.IsNullOrEmpty(folderBrowserSource.SelectedPath))
+            {
+                folderBrowserSource.SelectedPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Stable Diffusion UI");
+                //Could go further and attempt to match the closest directory that matches the loaded favorites file.
+                //Regex reg = new Regex( Date, minus the last 3 characters + @"*");
+                //var dirs = Directory.GetDirectories(path)
+                //                     .Where(path => reg.IsMatch(path))
+                //                     .ToList();
+                // -- generally should match just one, but could match more than one.
+
+            }
             DialogResult result = folderBrowserSource.ShowDialog();
 
             if (result == DialogResult.OK)
@@ -109,7 +119,7 @@ namespace MoveSelectedFavorites
                     string originalFileName = file.FullName;
                     string newFileName = Path.Combine(destinationFolder.Text, file.Name);
                     File.Copy(originalFileName, newFileName);  //could also use move
-                    //TODO: list files to the window as they are copied
+                    //TODO: list files to the window as they are copied, or at least report a count
                 }
             }
             catch (Exception ex)
