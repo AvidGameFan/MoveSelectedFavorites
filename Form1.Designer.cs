@@ -42,6 +42,7 @@ namespace MoveSelectedFavorites
             this.folderBrowserSource = new System.Windows.Forms.FolderBrowserDialog();
             this.favoritesButton = new System.Windows.Forms.Button();
             this.favoritesLabel = new System.Windows.Forms.Label();
+            this.labelCopyCount = new System.Windows.Forms.Label();
             this.SuspendLayout();
             // 
             // label1
@@ -68,14 +69,14 @@ namespace MoveSelectedFavorites
             this.destinationFolder.Location = new System.Drawing.Point(117, 221);
             this.destinationFolder.Multiline = true;
             this.destinationFolder.Name = "destinationFolder";
-            this.destinationFolder.Size = new System.Drawing.Size(209, 20);
+            this.destinationFolder.Size = new System.Drawing.Size(313, 20);
             this.destinationFolder.TabIndex = 2;
             // 
             // sourceFolder
             // 
             this.sourceFolder.Location = new System.Drawing.Point(117, 99);
             this.sourceFolder.Name = "sourceFolder";
-            this.sourceFolder.Size = new System.Drawing.Size(209, 20);
+            this.sourceFolder.Size = new System.Drawing.Size(313, 20);
             this.sourceFolder.TabIndex = 5;
             // 
             // selectSource
@@ -126,11 +127,20 @@ namespace MoveSelectedFavorites
             this.favoritesLabel.Size = new System.Drawing.Size(0, 13);
             this.favoritesLabel.TabIndex = 8;
             // 
+            // labelCopyCount
+            // 
+            this.labelCopyCount.AutoSize = true;
+            this.labelCopyCount.Location = new System.Drawing.Point(157, 327);
+            this.labelCopyCount.Name = "labelCopyCount";
+            this.labelCopyCount.Size = new System.Drawing.Size(0, 13);
+            this.labelCopyCount.TabIndex = 9;
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(800, 450);
+            this.Controls.Add(this.labelCopyCount);
             this.Controls.Add(this.favoritesLabel);
             this.Controls.Add(this.favoritesButton);
             this.Controls.Add(this.copyButton);
@@ -162,6 +172,7 @@ namespace MoveSelectedFavorites
         private System.Windows.Forms.FolderBrowserDialog folderBrowserSource;
         private System.Windows.Forms.Button favoritesButton;
         private System.Windows.Forms.Label favoritesLabel;
+        private System.Windows.Forms.Label labelCopyCount;
     }
 }
 
