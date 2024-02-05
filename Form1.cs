@@ -41,12 +41,12 @@ namespace MoveSelectedFavorites
                 favoritesList = new List<string>();
 
                 string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
-                foreach (string filePath in files)
+                //foreach (string filePath in files)  -- currently, cannot handle multiple files -- just pick one
+                if (files.Any())
                 {
-                    Console.WriteLine(filePath);
+                    //Console.WriteLine(filePath);
                     //Load file, save list of seeds
-                    
-                    //TODO: process list(s)
+                    ProcessFavoritesFile(files[0], File.OpenRead(files[0]));
                 }
             }
         }
@@ -108,14 +108,16 @@ namespace MoveSelectedFavorites
                 MessageBox.Show("First, load list of favorites.");
                 return;
             }
-            //For each image file in the source folder, 
-            //  search contents for one of the listed seeds.
-            //  If match found, perform action -- copy to destination folder
-            SearchFiles("*.png", "tEXtseed\0", copyList);
-            SearchFiles("*.webp", "\"seed\": ", copyList);
-            SearchFiles("*.jpeg", "\"seed\": ", copyList);
+
             try 
             {
+                //For each image file in the source folder, 
+                //  search contents for one of the listed seeds.
+                //  If match found, perform action -- copy to destination folder
+                SearchFiles("*.png", "tEXtseed\0", copyList);
+                SearchFiles("*.webp", "\"seed\": ", copyList);
+                SearchFiles("*.jpeg", "\"seed\": ", copyList);
+
                 int imageCount = 0;
                 //for each file to process, copy
                 foreach (var fileName2 in copyList)
@@ -197,20 +199,21 @@ namespace MoveSelectedFavorites
                             while ((bytesRead = reader.Read(buffer, 0, 2000)) >0)
                             {
                                 bool decodingUnicode = false;
+                                int unicodeIndex = 0;
                                 fileIndex += bytesRead;
 
                                 //search for metadata string pattern, and copy until null character
                                 string data = new String(buffer);
-                                if (fileName.Substring(fileName.Length-4)=="webp")
-                                { 
-                                    data = Encoding.Unicode.GetString(data.Select(c => (byte)c).ToArray());    //convert char array to byte array
-                                }
-                                else
-                                if (fileName.Substring(fileName.Length - 4) == "jpeg")
+                                //if (fileName.Substring(fileName.Length-4)=="webp")
+                                //{ 
+                                //    data = Encoding.Unicode.GetString(data.Select(c => (byte)c).ToArray());    //convert char array to byte array
+                                //}
+                                //else
+                                if (fileName.Substring(fileName.Length - 4) == "jpeg" || fileName.Substring(fileName.Length - 4) == "webp")
                                 {
                                     //TODO: slight chance of buffer not big enough here
                                     //Need to find the UNICODE block before decoding as UNICODE.
-                                    int unicodeIndex = data.IndexOf("UNICODE");
+                                    unicodeIndex = data.IndexOf("UNICODE");
                                     if (decodingUnicode || unicodeIndex >= 0)
                                     {
                                         data = Encoding.Unicode.GetString(data.Substring(unicodeIndex + "UNICODE".Length).Select(c => (byte)c).ToArray());    //convert char array to byte array
@@ -254,6 +257,7 @@ namespace MoveSelectedFavorites
                     MessageBox.Show($"Error.\n\nError message: {ex.Message}\n\n" +
                     $"Details:\n\n{ex.StackTrace}");
                 }
+                //if seed was never found in file, may need to fall back on the JSON or TXT sidecar file.
             }
         }
 
@@ -265,45 +269,54 @@ namespace MoveSelectedFavorites
 
             if (openFileDialog1.ShowDialog() == DialogResult.OK)
             {
-                try
-                {
-                    favoritesList = new List<string>();
-                    var filePath = openFileDialog1.FileName;
-                    using (Stream str = openFileDialog1.OpenFile())
-                    {
-                        using (var reader = new StreamReader(str))
-                        {
-                            string line;
-                            while ((line = reader.ReadLine()) != null)
-                            {
-                                favoritesList.Add(line);
-                            }
-                            favoritesLabel.Text = "Loaded: " + openFileDialog1.FileName;
-                            //Process.Start("notepad.exe", filePath);
-                        }
-                    }
+                ProcessFavoritesFile(openFileDialog1.FileName, openFileDialog1.OpenFile());
+            }
+        }
 
-                    //attempt to match the closest directory that matches the loaded favorites file.
-                    FileInfo file = new FileInfo(openFileDialog1.FileName);
-                    Regex reg = new Regex("favoriteslist-([0-9]+)*");
-                    var match= reg.Match(file.Name);
-                    string time = match.Groups[1].Value;
-                    //Regex reg = new Regex( Date, minus the last 3 characters + @"*");
-                    reg = new Regex(time.Substring(0,time.Length-3)+"*");
-                    var dirs = Directory.GetDirectories(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Stable Diffusion UI"))
-                                         .Where(path => reg.IsMatch(path))
-                                         .ToList();
-                    // -- generally should match just one, but could match more than one.
-                    if (dirs.Count==1)
+        private void ProcessFavoritesFile(string filePath, Stream fileStream)
+        {
+            try
+            {
+                favoritesList = new List<string>();
+
+                using (Stream str = fileStream)
+                {
+                    using (var reader = new StreamReader(str))
                     {
-                        sourceFolder.Text = dirs[0];
+                        string line;
+                        while ((line = reader.ReadLine()) != null)
+                        {
+                            favoritesList.Add(line);
+                        }
+                        favoritesLabel.Text = "Loaded: " + filePath;
+                        //Process.Start("notepad.exe", filePath);
                     }
                 }
-                catch (SecurityException ex)
+
+                //attempt to match the closest directory that matches the loaded favorites file.
+                FileInfo file = new FileInfo(filePath);
+                Regex reg = new Regex("favoriteslist-([0-9]+)*");
+                var match = reg.Match(file.Name);
+                string time = match.Groups[1].Value;
+                //Regex reg = new Regex( Date, minus the last 3 characters + @"*");
+                if (time.Length < 3)  //if no date found in the name, we can't process further - just exit
                 {
-                    MessageBox.Show($"Security error.\n\nError message: {ex.Message}\n\n" +
-                    $"Details:\n\n{ex.StackTrace}");
+                    return;
                 }
+                reg = new Regex(time.Substring(0, time.Length - 3) + "*");
+                var dirs = Directory.GetDirectories(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Stable Diffusion UI"))
+                                     .Where(path => reg.IsMatch(path))
+                                     .ToList();
+                // -- generally should match just one, but could match more than one.
+                if (dirs.Count == 1)
+                {
+                    sourceFolder.Text = dirs[0];
+                }
+            }
+            catch (SecurityException ex)
+            {
+                MessageBox.Show($"Security error.\n\nError message: {ex.Message}\n\n" +
+                $"Details:\n\n{ex.StackTrace}");
             }
         }
     }
