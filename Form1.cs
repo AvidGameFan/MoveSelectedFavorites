@@ -32,6 +32,8 @@ namespace MoveSelectedFavorites
             };
 
             favoritesList = new List<string>();
+
+            log.Text += Environment.NewLine + DateTime.Now + ": Starting" + Environment.NewLine;
         }
         private List<string> favoritesList;
         private void MainForm_DragDrop(object sender, DragEventArgs e)
@@ -92,7 +94,7 @@ namespace MoveSelectedFavorites
             string result = folderBrowserSource.SelectedPath;
             if (String.IsNullOrEmpty(folderBrowserSource.SelectedPath))
             {
-                 result = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Stable Diffusion UI");
+                result = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Stable Diffusion UI");
             }
             return result;
         }
@@ -101,7 +103,7 @@ namespace MoveSelectedFavorites
         {
             UseWaitCursor = true;
             labelCopyCount.Text = string.Empty;
-            List <String> copyList = new List<string>();
+            List<String> copyList = new List<string>();
             //Validate
             if (favoritesList.Count == 0)
             {
@@ -109,7 +111,7 @@ namespace MoveSelectedFavorites
                 return;
             }
 
-            try 
+            try
             {
                 //For each image file in the source folder, 
                 //  search contents for one of the listed seeds.
@@ -129,7 +131,7 @@ namespace MoveSelectedFavorites
                         //list files to the window as they are copied, or at least report a count
 
                         imageCount++;
-                        labelCopyCount.Text = imageCount + " files copied out of "+copyList.Count;
+                        labelCopyCount.Text = imageCount + " files copied out of " + copyList.Count;
 
                         //If there is a corresponding JSON or TXT file, copy that too
                         string textFile = fileName2;
@@ -139,12 +141,32 @@ namespace MoveSelectedFavorites
                         CopyImageFile(textFile);
                     }
                 }
+
+                //All files should be copied at this point. Can rename folder.
+                if (checkRenSource.Checked)
+                {
+                    Directory.Move(sourceFolder.Text, sourceFolder.Text.TrimEnd('\\') + suffix.Text); //use TrimEnd() to remove unnecessary ending slashes
+                }
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"Error.\n\nError message: {ex.Message}\n\n" +
                 $"Details:\n\n{ex.StackTrace}");
             }
+
+            //Done.  
+
+            log.Text += Environment.NewLine + DateTime.Now + ": " + Environment.NewLine;
+            log.Text += "List " + favoritesLabel.Text + Environment.NewLine;
+            log.Text += $"Copied files from {sourceFolder.Text}" + Environment.NewLine;
+
+            //sourceFolder.Text = String.Empty; //Could clear the source folder, as reproducing the copy will produce no further results.
+            if (labelCopyCount.Text == string.Empty) //if empty, we must have failed to copy.  Could happen if attempting to copy a 2nd time on the same folder.
+            {
+                labelCopyCount.Text = "Images to copy not found, or other error.";
+            }
+            log.Text += labelCopyCount.Text + Environment.NewLine;
+
             UseWaitCursor = false;
         }
 
@@ -159,7 +181,7 @@ namespace MoveSelectedFavorites
             FileInfo file = new FileInfo(fileName2);
             string originalFileName = file.FullName;
             //if source name doesn't exist, don't bother trying to copy.  This will happen with json/txt files.
-            if (!File.Exists(originalFileName)) 
+            if (!File.Exists(originalFileName))
             {
                 return false;
             }
@@ -174,7 +196,7 @@ namespace MoveSelectedFavorites
         }
 
         /// <summary>
-        /// 
+        /// Search Files for metadata
         /// </summary>
         /// <param name="filePattern"></param>
         /// <param name="searchPattern"></param>
@@ -193,10 +215,10 @@ namespace MoveSelectedFavorites
                     {
                         using (var reader = new StreamReader(str))
                         {
-                            char[] buffer = new char[2000]; 
+                            char[] buffer = new char[2000];
                             int bytesRead = 0;
                             int fileIndex = 0;
-                            while ((bytesRead = reader.Read(buffer, 0, 2000)) >0)
+                            while ((bytesRead = reader.Read(buffer, 0, 2000)) > 0)
                             {
                                 bool decodingUnicode = false;
                                 int unicodeIndex = 0;
@@ -220,11 +242,11 @@ namespace MoveSelectedFavorites
                                         decodingUnicode = true;    //once we're decoding UNICODE, need to keep going
                                     }
                                 }
-                                sb.Remove(0, Math.Max(0,sb.Length - searchPattern.Length));
+                                sb.Remove(0, Math.Max(0, sb.Length - searchPattern.Length));
                                 //need to look just beyond the buffer, so as not to miss the pattern in the case it overlaps with the buffer size.
                                 sb.Append(data);
                                 data = sb.ToString();
-                                int location = data.IndexOf(searchPattern,StringComparison.OrdinalIgnoreCase);
+                                int location = data.IndexOf(searchPattern, StringComparison.OrdinalIgnoreCase);
                                 if (location == -1)
                                     continue; //keep reading until we're done with the file
                                 string seedData = data.Substring(location + searchPattern.Length, 15);
@@ -318,6 +340,15 @@ namespace MoveSelectedFavorites
                 MessageBox.Show($"Security error.\n\nError message: {ex.Message}\n\n" +
                 $"Details:\n\n{ex.StackTrace}");
             }
+        }
+
+        private void checkRenSource_CheckedChanged(object sender, EventArgs e)
+        {
+            suffix.Enabled = checkRenSource.Checked;
+        }
+        private void MainForm_Resize(object sender, EventArgs e)
+        {
+            log.Width = this.ClientSize.Width - 467;
         }
     }
 }

@@ -43,6 +43,10 @@ namespace MoveSelectedFavorites
             this.favoritesButton = new System.Windows.Forms.Button();
             this.favoritesLabel = new System.Windows.Forms.Label();
             this.labelCopyCount = new System.Windows.Forms.Label();
+            this.suffix = new System.Windows.Forms.TextBox();
+            this.checkRenSource = new System.Windows.Forms.CheckBox();
+            this.labelLog = new System.Windows.Forms.Label();
+            this.log = new System.Windows.Forms.TextBox();
             this.SuspendLayout();
             // 
             // label1
@@ -135,11 +139,53 @@ namespace MoveSelectedFavorites
             this.labelCopyCount.Size = new System.Drawing.Size(0, 13);
             this.labelCopyCount.TabIndex = 9;
             // 
+            // suffix
+            // 
+            this.suffix.Enabled = false;
+            this.suffix.Location = new System.Drawing.Point(235, 264);
+            this.suffix.Name = "suffix";
+            this.suffix.Size = new System.Drawing.Size(100, 20);
+            this.suffix.TabIndex = 11;
+            this.suffix.Text = "_work";
+            // 
+            // checkRenSource
+            // 
+            this.checkRenSource.AutoSize = true;
+            this.checkRenSource.Location = new System.Drawing.Point(34, 266);
+            this.checkRenSource.Name = "checkRenSource";
+            this.checkRenSource.Size = new System.Drawing.Size(195, 17);
+            this.checkRenSource.TabIndex = 12;
+            this.checkRenSource.Text = "Rename Source Folder using Suffix:";
+            this.checkRenSource.UseVisualStyleBackColor = true;
+            this.checkRenSource.CheckedChanged += new System.EventHandler(this.checkRenSource_CheckedChanged);
+            // 
+            // labelLog
+            // 
+            this.labelLog.AutoSize = true;
+            this.labelLog.Location = new System.Drawing.Point(433, 67);
+            this.labelLog.Name = "labelLog";
+            this.labelLog.Size = new System.Drawing.Size(28, 13);
+            this.labelLog.TabIndex = 13;
+            this.labelLog.Text = "Log:";
+            // 
+            // log
+            // 
+            this.log.Location = new System.Drawing.Point(467, 64);
+            this.log.Multiline = true;
+            this.log.Name = "log";
+            this.log.ReadOnly = true;
+            this.log.Size = new System.Drawing.Size(302, 300);
+            this.log.TabIndex = 14;
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(800, 450);
+            this.ClientSize = new System.Drawing.Size(781, 376);
+            this.Controls.Add(this.log);
+            this.Controls.Add(this.labelLog);
+            this.Controls.Add(this.checkRenSource);
+            this.Controls.Add(this.suffix);
             this.Controls.Add(this.labelCopyCount);
             this.Controls.Add(this.favoritesLabel);
             this.Controls.Add(this.favoritesButton);
@@ -150,8 +196,10 @@ namespace MoveSelectedFavorites
             this.Controls.Add(this.destinationFolder);
             this.Controls.Add(this.button1);
             this.Controls.Add(this.label1);
+            this.MinimumSize = new System.Drawing.Size(770, 415);
             this.Name = "MainForm";
             this.Text = "Favorites";
+            this.Resize += new System.EventHandler(this.MainForm_Resize);
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -173,6 +221,10 @@ namespace MoveSelectedFavorites
         private System.Windows.Forms.Button favoritesButton;
         private System.Windows.Forms.Label favoritesLabel;
         private System.Windows.Forms.Label labelCopyCount;
+        private System.Windows.Forms.TextBox suffix;
+        private System.Windows.Forms.CheckBox checkRenSource;
+        private System.Windows.Forms.Label labelLog;
+        private System.Windows.Forms.TextBox log;
     }
 }
 
