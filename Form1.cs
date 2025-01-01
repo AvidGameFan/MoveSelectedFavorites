@@ -48,7 +48,15 @@ namespace MoveSelectedFavorites
                 {
                     //Console.WriteLine(filePath);
                     //Load file, save list of seeds
-                    ProcessFavoritesFile(files[0], File.OpenRead(files[0]));
+                    try
+                    {
+                        ProcessFavoritesFile(files[0], File.OpenRead(files[0]));
+                    }
+                    catch
+                    {
+                        log.Text += Environment.NewLine + DateTime.Now + ": Unable to load file " + files[0] + Environment.NewLine
+                            + "Only Drag-and-drop favorites text files containing seeds." + Environment.NewLine;
+                    }
                 }
             }
         }
@@ -145,7 +153,15 @@ namespace MoveSelectedFavorites
                 //All files should be copied at this point. Can rename folder.
                 if (checkRenSource.Checked)
                 {
-                    Directory.Move(sourceFolder.Text, sourceFolder.Text.TrimEnd('\\') + suffix.Text); //use TrimEnd() to remove unnecessary ending slashes
+                    //If no files were copied, probably got the wrong directory -- don't rename.
+                    if (imageCount > 0)
+                    {
+                        Directory.Move(sourceFolder.Text, sourceFolder.Text.TrimEnd('\\') + suffix.Text); //use TrimEnd() to remove unnecessary ending slashes
+                    }
+                    else
+                    {
+                        log.Text += Environment.NewLine + DateTime.Now + ": No files copied - source folder not renamed." + Environment.NewLine;
+                    }
                 }
             }
             catch (Exception ex)
