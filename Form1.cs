@@ -109,7 +109,7 @@ namespace MoveSelectedFavorites
 
         private void copyButton_Click(object sender, EventArgs e)
         {
-            UseWaitCursor = true;
+            Application.UseWaitCursor = true;  //Why doesn't this work?  Probably need to launch workload in a separate thread.
             labelCopyCount.Text = string.Empty;
             List<String> copyList = new List<string>();
             //Validate
@@ -183,7 +183,7 @@ namespace MoveSelectedFavorites
             }
             log.Text += labelCopyCount.Text + Environment.NewLine;
 
-            UseWaitCursor = false;
+            Application.UseWaitCursor = false;
         }
 
         /// <summary>
@@ -342,9 +342,23 @@ namespace MoveSelectedFavorites
                     return;
                 }
                 reg = new Regex(time.Substring(0, time.Length - 3) + "*");
-                var dirs = Directory.GetDirectories(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Stable Diffusion UI"))
-                                     .Where(path => reg.IsMatch(path))
-                                     .ToList();
+
+                //usually, expect saved image numbered folders in the default folder, but in the case of having moved to another drive, allow searching that other drive.  Still requires parent name to be "Stable Diffusion UI".
+                var rootFolder = sourceFolder.Text;
+                //If there is already a folder listed in the source path field, use that as the root to find the next folder (as long as it contains the text Stable Diffusion UI)   
+                if (!String.IsNullOrEmpty(rootFolder) && rootFolder.IndexOf("Stable Diffusion UI")>0)
+                {
+                    rootFolder = rootFolder.Substring(0, rootFolder.IndexOf("Stable Diffusion UI"));
+                }
+                //Else, use the user profile folder as the root.
+                else
+                {
+                    rootFolder = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+                }
+
+                    var dirs = Directory.GetDirectories(Path.Combine(rootFolder, "Stable Diffusion UI"))
+                                             .Where(path => reg.IsMatch(path))
+                                             .ToList();
                 // -- generally should match just one, but could match more than one.
                 if (dirs.Count == 1)
                 {
