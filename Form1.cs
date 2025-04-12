@@ -107,11 +107,10 @@ namespace MoveSelectedFavorites
             return result;
         }
 
-        private void copyButton_Click(object sender, EventArgs e)
+        private async void copyButton_Click(object sender, EventArgs e)
         {
-            Application.UseWaitCursor = true;  //Why doesn't this work?  Probably need to launch workload in a separate thread.
             labelCopyCount.Text = string.Empty;
-            List<String> copyList = new List<string>();
+
             //Validate
             if (favoritesList.Count == 0)
             {
@@ -119,55 +118,73 @@ namespace MoveSelectedFavorites
                 return;
             }
 
+            Application.UseWaitCursor = true;
+            //The copy can be time-consuming, so show the wait cursor and spin off a thread.
+
             try
             {
-                //For each image file in the source folder, 
-                //  search contents for one of the listed seeds.
-                //  If match found, perform action -- copy to destination folder
-                SearchFiles("*.png", "tEXtseed\0", copyList);
-                SearchFiles("*.webp", "\"seed\": ", copyList);
-                SearchFiles("*.jpeg", "\"seed\": ", copyList);
-
-                int imageCount = 0;
-                //for each file to process, copy
-                foreach (var fileName2 in copyList)
+                await Task.Run(() =>
                 {
-                    bool success = false;
-                    success = CopyImageFile(fileName2);
-                    if (success)
-                    {
-                        //list files to the window as they are copied, or at least report a count
+                    List<string> copyList = new List<string>();
 
-                        imageCount++;
-                        labelCopyCount.Text = imageCount + " files copied out of " + copyList.Count;
+                    //For each image file in the source folder, 
+                    //  search contents for one of the listed seeds.
+                    //  If match found, perform action -- copy to destination folder
+                    SearchFiles("*.png", "tEXtseed\0", copyList);
+                    SearchFiles("*.webp", "\"seed\": ", copyList);
+                    SearchFiles("*.jpeg", "\"seed\": ", copyList);
 
-                        //If there is a corresponding JSON or TXT file, copy that too
-                        string textFile = fileName2;
-                        textFile = fileName2.Substring(0, fileName2.IndexOf('.', fileName2.Length - 5) + 1) + "json";
-                        CopyImageFile(textFile);
-                        textFile = fileName2.Substring(0, fileName2.IndexOf('.', fileName2.Length - 5) + 1) + "txt";
-                        CopyImageFile(textFile);
-                    }
-                }
+                    int imageCount = 0;
+                    //for each file to process, copy
+                    foreach (var fileName2 in copyList)
+                    {
+                        bool success = false;
+                        success = CopyImageFile(fileName2);
+                        if (success)
+                        {
+                            //list files to the window as they are copied, or at least report a count
 
-                //All files should be copied at this point. Can rename folder.
-                if (checkRenSource.Checked)
-                {
-                    //If no files were copied, probably got the wrong directory -- don't rename.
-                    if (imageCount > 0)
-                    {
-                        Directory.Move(sourceFolder.Text, sourceFolder.Text.TrimEnd('\\') + suffix.Text); //use TrimEnd() to remove unnecessary ending slashes
+                            imageCount++;
+                            Invoke(new Action(() =>
+                            {
+                                labelCopyCount.Text = $"{imageCount} files copied out of {copyList.Count}";
+                            }));
+
+                            //If there is a corresponding JSON or TXT file, copy that too
+                            string textFile = fileName2;
+                            textFile = fileName2.Substring(0, fileName2.IndexOf('.', fileName2.Length - 5) + 1) + "json";
+                            CopyImageFile(textFile);
+                            textFile = fileName2.Substring(0, fileName2.IndexOf('.', fileName2.Length - 5) + 1) + "txt";
+                            CopyImageFile(textFile);
+                        }
                     }
-                    else
+
+                    //All files should be copied at this point. Can rename folder.
+                    if (checkRenSource.Checked)
                     {
-                        log.Text += Environment.NewLine + DateTime.Now + ": No files copied - source folder not renamed." + Environment.NewLine;
+                        //If no files were copied, probably got the wrong directory -- don't rename.
+                        if (imageCount > 0)
+                        {
+                            Directory.Move(sourceFolder.Text, sourceFolder.Text.TrimEnd('\\') + suffix.Text); //use TrimEnd() to remove unnecessary ending slashes
+                        }
+                        else
+                        {
+                            Invoke(new Action(() =>
+                            {
+                                log.Text += Environment.NewLine + DateTime.Now + ": No files copied - source folder not renamed." + Environment.NewLine;
+                            }));
+                        }
                     }
-                }
+                });
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"Error.\n\nError message: {ex.Message}\n\n" +
                 $"Details:\n\n{ex.StackTrace}");
+            }
+            finally
+            {
+                Application.UseWaitCursor = false;
             }
 
             //Done.  
