@@ -123,59 +123,64 @@ namespace MoveSelectedFavorites
 
             try
             {
-                await Task.Run(() =>
-                {
+                //await Task.Run(() =>
+                //{
                     List<string> copyList = new List<string>();
 
-                    //For each image file in the source folder, 
-                    //  search contents for one of the listed seeds.
-                    //  If match found, perform action -- copy to destination folder
+                //For each image file in the source folder, 
+                //  search contents for one of the listed seeds.
+                //  If match found, perform action -- copy to destination folder
+                // Perform the file search in a background thread
+                await Task.Run(() =>
+                {
                     SearchFiles("*.png", "tEXtseed\0", copyList);
                     SearchFiles("*.webp", "\"seed\": ", copyList);
                     SearchFiles("*.jpeg", "\"seed\": ", copyList);
-
-                    int imageCount = 0;
-                    //for each file to process, copy
-                    foreach (var fileName2 in copyList)
-                    {
-                        bool success = false;
-                        success = CopyImageFile(fileName2);
-                        if (success)
-                        {
-                            //list files to the window as they are copied, or at least report a count
-
-                            imageCount++;
-                            Invoke(new Action(() =>
-                            {
-                                labelCopyCount.Text = $"{imageCount} files copied out of {copyList.Count}";
-                            }));
-
-                            //If there is a corresponding JSON or TXT file, copy that too
-                            string textFile = fileName2;
-                            textFile = fileName2.Substring(0, fileName2.IndexOf('.', fileName2.Length - 5) + 1) + "json";
-                            CopyImageFile(textFile);
-                            textFile = fileName2.Substring(0, fileName2.IndexOf('.', fileName2.Length - 5) + 1) + "txt";
-                            CopyImageFile(textFile);
-                        }
-                    }
-
-                    //All files should be copied at this point. Can rename folder.
-                    if (checkRenSource.Checked)
-                    {
-                        //If no files were copied, probably got the wrong directory -- don't rename.
-                        if (imageCount > 0)
-                        {
-                            Directory.Move(sourceFolder.Text, sourceFolder.Text.TrimEnd('\\') + suffix.Text); //use TrimEnd() to remove unnecessary ending slashes
-                        }
-                        else
-                        {
-                            Invoke(new Action(() =>
-                            {
-                                log.Text += Environment.NewLine + DateTime.Now + ": No files copied - source folder not renamed." + Environment.NewLine;
-                            }));
-                        }
-                    }
                 });
+
+                int imageCount = 0;
+                //for each file to process, copy
+                foreach (var fileName2 in copyList)
+                {
+                    //bool success = false;
+                    bool success = await CopyImageFileAsync(fileName2);
+
+                    if (success)
+                    {
+                        //list files to the window as they are copied, or at least report a count
+
+                        imageCount++;
+                        //Invoke(new Action(() =>
+                        //{
+                            labelCopyCount.Text = $"{imageCount} files copied out of {copyList.Count}";
+                        //}));
+
+                        //If there is a corresponding JSON or TXT file, copy that too
+                        string textFile = fileName2;
+                        textFile = fileName2.Substring(0, fileName2.IndexOf('.', fileName2.Length - 5) + 1) + "json";
+                        await CopyImageFileAsync(textFile);
+                        textFile = fileName2.Substring(0, fileName2.IndexOf('.', fileName2.Length - 5) + 1) + "txt";
+                        await CopyImageFileAsync(textFile);
+                    }
+                }
+
+                //All files should be copied at this point. Can rename folder.
+                if (checkRenSource.Checked)
+                {
+                    //If no files were copied, probably got the wrong directory -- don't rename.
+                    if (imageCount > 0)
+                    {
+                        Directory.Move(sourceFolder.Text, sourceFolder.Text.TrimEnd('\\') + suffix.Text); //use TrimEnd() to remove unnecessary ending slashes
+                    }
+                    else
+                    {
+                        //Invoke(new Action(() =>
+                        //{
+                        log.Text += Environment.NewLine + DateTime.Now + ": No files copied - source folder not renamed." + Environment.NewLine;
+                        //}));
+                    }
+                }
+                //});
             }
             catch (Exception ex)
             {
@@ -229,6 +234,50 @@ namespace MoveSelectedFavorites
         }
 
         /// <summary>
+        /// Copy file without overwrite
+        /// </summary>
+        /// <param name="fileName2">filename, with full path</param>
+        /// <returns>true if copy successful, false if destination exists (no copy)</returns>
+        private async Task<bool> CopyImageFileAsync(string fileName2)
+        {
+            FileInfo file = new FileInfo(fileName2);
+            string originalFileName = file.FullName;
+            //if source name doesn't exist, don't bother trying to copy.  This will happen with json/txt files.
+            if (!File.Exists(originalFileName))
+            {
+                return false;
+            }
+
+            string newFileName = Path.Combine(destinationFolder.Text, file.Name);
+            //if file exists, don't copy, and return status of false
+            if (File.Exists(newFileName))
+            {
+                return false;
+            }
+
+            // Rather than use "File.Copy(originalFileName, newFileName);", using async methods.
+            // could also do a move, but for now, just copy.
+            try
+            {
+                using (FileStream sourceStream = new FileStream(originalFileName, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true))
+                using (FileStream destinationStream = new FileStream(newFileName, FileMode.CreateNew, FileAccess.Write, FileShare.None, 4096, true))
+                {
+                    await sourceStream.CopyToAsync(destinationStream);
+                }
+                // Preserve the original modified date
+                DateTime originalLastWriteTime = File.GetLastWriteTime(originalFileName);
+                File.SetLastWriteTime(newFileName, originalLastWriteTime);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                //MessageBox.Show($"Error copying file: {fileName2}\n\nError message: {ex.Message}");
+                return false;
+            }
+        }
+
+
+        /// <summary>
         /// Search Files for metadata
         /// </summary>
         /// <param name="filePattern"></param>
@@ -246,6 +295,7 @@ namespace MoveSelectedFavorites
                     StringBuilder sb = new StringBuilder();
                     using (Stream str = File.Open(fileName, FileMode.Open))
                     {
+                        bool foundPattern = false;
                         using (var reader = new StreamReader(str))
                         {
                             char[] buffer = new char[2000];
@@ -282,6 +332,9 @@ namespace MoveSelectedFavorites
                                 int location = data.IndexOf(searchPattern, StringComparison.OrdinalIgnoreCase);
                                 if (location == -1)
                                     continue; //keep reading until we're done with the file
+                                
+                                //We found the pattern, now obtain the seed.
+                                foundPattern = true;
                                 string seedData = data.Substring(location + searchPattern.Length, 15);
                                 string seed = String.Empty;
                                 foreach (char c in seedData)
@@ -300,6 +353,26 @@ namespace MoveSelectedFavorites
                                 break;  //get next file
                             }
                         }
+                        if (!foundPattern)
+                        {
+                            //We read through the entire file.  If we never found the embedded search pattern, perhaps it was never saved to the image file.
+                            //Look for the seed in the cooresponding jpeg or txt file
+
+                            // Check the corresponding JSON file for the pattern
+                            string textFile = fileName.Substring(0, fileName.IndexOf('.', fileName.Length - 5) + 1) + "json";
+                            if (SearchTextFileForPattern(textFile, "\"seed\": "))
+                            {
+                                copyList.Add(fileName);
+                            }
+
+                            // Check the corresponding TXT file for the pattern
+                            textFile = fileName.Substring(0, fileName.IndexOf('.', fileName.Length - 5) + 1) + "txt";
+                            if (SearchTextFileForPattern(textFile, "seed: "))
+                            {
+                                copyList.Add(fileName);
+                            }
+                        }
+
                     }
                 }
                 catch (SecurityException ex)
@@ -315,6 +388,54 @@ namespace MoveSelectedFavorites
                 //if seed was never found in file, may need to fall back on the JSON or TXT sidecar file.
             }
         }
+
+        /// <summary>
+        /// Opens a text file and searches for a specific pattern.
+        /// </summary>
+        /// <remarks>Initial method created by CoPilot</remarks>
+        /// <param name="filePath">The full path of the text file to search.</param>
+        /// <param name="pattern">The pattern to search for in the file.</param>
+        /// <returns>True if the pattern is found AND we match a seed, false otherwise or if the file does not exist.</returns>
+        private bool SearchTextFileForPattern(string filePath, string pattern)
+        {
+            if (!File.Exists(filePath))
+            {
+                return false;
+            }
+
+            try
+            {
+                using (StreamReader reader = new StreamReader(filePath))
+                {
+                    string line;
+                    while ((line = reader.ReadLine()) != null)
+                    {
+                        int location = line.IndexOf(pattern, StringComparison.OrdinalIgnoreCase);
+                        if (location > -1)
+                        {
+                            string seedData = line.Substring(location + pattern.Length);  //grab the rest of the line after the "seed: " pattern
+                            string seed = String.Empty;
+                            foreach (char c in seedData)
+                            {
+                                //TODO: it is possible that extra numeric characters may appear at the end, and thus the occasional file won't copy.  Need to revisit the file format.
+                                if (c < '0' || c > '9')
+                                    break;
+                                seed += c;
+                            }
+                            if (favoritesList.IndexOf(seed) != -1)  //Found!
+                                return true;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error reading file: {filePath}\n\nError message: {ex.Message}");
+            }
+
+            return false;
+        }
+
 
         private OpenFileDialog openFileDialog1;
         //see: https://learn.microsoft.com/en-us/dotnet/desktop/winforms/controls/how-to-open-files-using-the-openfiledialog-component?view=netframeworkdesktop-4.8
