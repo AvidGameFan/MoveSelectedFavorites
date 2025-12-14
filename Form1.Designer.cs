@@ -52,17 +52,19 @@ namespace MoveSelectedFavorites
             // label1
             // 
             this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(32, 224);
+            this.label1.Location = new System.Drawing.Point(48, 345);
+            this.label1.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(67, 13);
+            this.label1.Size = new System.Drawing.Size(99, 20);
             this.label1.TabIndex = 0;
             this.label1.Text = "Copy files to:";
             // 
             // button1
             // 
-            this.button1.Location = new System.Drawing.Point(35, 195);
+            this.button1.Location = new System.Drawing.Point(52, 300);
+            this.button1.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.button1.Name = "button1";
-            this.button1.Size = new System.Drawing.Size(167, 23);
+            this.button1.Size = new System.Drawing.Size(250, 35);
             this.button1.TabIndex = 1;
             this.button1.Text = "Select Destination Folder";
             this.button1.UseVisualStyleBackColor = true;
@@ -70,24 +72,27 @@ namespace MoveSelectedFavorites
             // 
             // destinationFolder
             // 
-            this.destinationFolder.Location = new System.Drawing.Point(117, 221);
+            this.destinationFolder.Location = new System.Drawing.Point(176, 340);
+            this.destinationFolder.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.destinationFolder.Multiline = true;
             this.destinationFolder.Name = "destinationFolder";
-            this.destinationFolder.Size = new System.Drawing.Size(313, 20);
+            this.destinationFolder.Size = new System.Drawing.Size(468, 29);
             this.destinationFolder.TabIndex = 2;
             // 
             // sourceFolder
             // 
-            this.sourceFolder.Location = new System.Drawing.Point(117, 99);
+            this.sourceFolder.Location = new System.Drawing.Point(176, 152);
+            this.sourceFolder.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.sourceFolder.Name = "sourceFolder";
-            this.sourceFolder.Size = new System.Drawing.Size(313, 20);
+            this.sourceFolder.Size = new System.Drawing.Size(468, 26);
             this.sourceFolder.TabIndex = 5;
             // 
             // selectSource
             // 
-            this.selectSource.Location = new System.Drawing.Point(35, 73);
+            this.selectSource.Location = new System.Drawing.Point(52, 112);
+            this.selectSource.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.selectSource.Name = "selectSource";
-            this.selectSource.Size = new System.Drawing.Size(167, 23);
+            this.selectSource.Size = new System.Drawing.Size(250, 35);
             this.selectSource.TabIndex = 4;
             this.selectSource.Text = "Select Source Folder";
             this.selectSource.UseVisualStyleBackColor = true;
@@ -96,18 +101,20 @@ namespace MoveSelectedFavorites
             // label2
             // 
             this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(32, 102);
+            this.label2.Location = new System.Drawing.Point(48, 157);
+            this.label2.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label2.Name = "label2";
-            this.label2.Size = new System.Drawing.Size(78, 13);
+            this.label2.Size = new System.Drawing.Size(117, 20);
             this.label2.TabIndex = 3;
             this.label2.Text = "Copy files from:";
             // 
             // copyButton
             // 
             this.copyButton.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.copyButton.Location = new System.Drawing.Point(35, 307);
+            this.copyButton.Location = new System.Drawing.Point(52, 472);
+            this.copyButton.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.copyButton.Name = "copyButton";
-            this.copyButton.Size = new System.Drawing.Size(98, 51);
+            this.copyButton.Size = new System.Drawing.Size(147, 78);
             this.copyButton.TabIndex = 6;
             this.copyButton.Text = "Copy!";
             this.copyButton.UseVisualStyleBackColor = true;
@@ -115,9 +122,10 @@ namespace MoveSelectedFavorites
             // 
             // favoritesButton
             // 
-            this.favoritesButton.Location = new System.Drawing.Point(35, 24);
+            this.favoritesButton.Location = new System.Drawing.Point(52, 37);
+            this.favoritesButton.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.favoritesButton.Name = "favoritesButton";
-            this.favoritesButton.Size = new System.Drawing.Size(127, 23);
+            this.favoritesButton.Size = new System.Drawing.Size(190, 35);
             this.favoritesButton.TabIndex = 7;
             this.favoritesButton.Text = "Select Favorites File";
             this.favoritesButton.UseVisualStyleBackColor = true;
@@ -126,34 +134,38 @@ namespace MoveSelectedFavorites
             // favoritesLabel
             // 
             this.favoritesLabel.AutoSize = true;
-            this.favoritesLabel.Location = new System.Drawing.Point(181, 29);
+            this.favoritesLabel.Location = new System.Drawing.Point(272, 45);
+            this.favoritesLabel.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.favoritesLabel.Name = "favoritesLabel";
-            this.favoritesLabel.Size = new System.Drawing.Size(0, 13);
+            this.favoritesLabel.Size = new System.Drawing.Size(0, 20);
             this.favoritesLabel.TabIndex = 8;
             // 
             // labelCopyCount
             // 
             this.labelCopyCount.AutoSize = true;
-            this.labelCopyCount.Location = new System.Drawing.Point(157, 327);
+            this.labelCopyCount.Location = new System.Drawing.Point(236, 503);
+            this.labelCopyCount.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.labelCopyCount.Name = "labelCopyCount";
-            this.labelCopyCount.Size = new System.Drawing.Size(0, 13);
+            this.labelCopyCount.Size = new System.Drawing.Size(0, 20);
             this.labelCopyCount.TabIndex = 9;
             // 
             // suffix
             // 
             this.suffix.Enabled = false;
-            this.suffix.Location = new System.Drawing.Point(235, 264);
+            this.suffix.Location = new System.Drawing.Point(352, 406);
+            this.suffix.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.suffix.Name = "suffix";
-            this.suffix.Size = new System.Drawing.Size(100, 20);
+            this.suffix.Size = new System.Drawing.Size(148, 26);
             this.suffix.TabIndex = 11;
             this.suffix.Text = "_work";
             // 
             // checkRenSource
             // 
             this.checkRenSource.AutoSize = true;
-            this.checkRenSource.Location = new System.Drawing.Point(34, 266);
+            this.checkRenSource.Location = new System.Drawing.Point(51, 409);
+            this.checkRenSource.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.checkRenSource.Name = "checkRenSource";
-            this.checkRenSource.Size = new System.Drawing.Size(195, 17);
+            this.checkRenSource.Size = new System.Drawing.Size(290, 24);
             this.checkRenSource.TabIndex = 12;
             this.checkRenSource.Text = "Rename Source Folder using Suffix:";
             this.checkRenSource.UseVisualStyleBackColor = true;
@@ -162,26 +174,29 @@ namespace MoveSelectedFavorites
             // labelLog
             // 
             this.labelLog.AutoSize = true;
-            this.labelLog.Location = new System.Drawing.Point(433, 67);
+            this.labelLog.Location = new System.Drawing.Point(650, 103);
+            this.labelLog.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.labelLog.Name = "labelLog";
-            this.labelLog.Size = new System.Drawing.Size(28, 13);
+            this.labelLog.Size = new System.Drawing.Size(40, 20);
             this.labelLog.TabIndex = 13;
             this.labelLog.Text = "Log:";
             // 
             // log
             // 
-            this.log.Location = new System.Drawing.Point(467, 64);
+            this.log.Location = new System.Drawing.Point(700, 98);
+            this.log.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.log.Multiline = true;
             this.log.Name = "log";
             this.log.ReadOnly = true;
-            this.log.Size = new System.Drawing.Size(302, 300);
+            this.log.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
+            this.log.Size = new System.Drawing.Size(451, 459);
             this.log.TabIndex = 14;
             // 
             // MainForm
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(9F, 20F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(781, 376);
+            this.ClientSize = new System.Drawing.Size(1172, 578);
             this.Controls.Add(this.log);
             this.Controls.Add(this.labelLog);
             this.Controls.Add(this.checkRenSource);
@@ -196,7 +211,8 @@ namespace MoveSelectedFavorites
             this.Controls.Add(this.destinationFolder);
             this.Controls.Add(this.button1);
             this.Controls.Add(this.label1);
-            this.MinimumSize = new System.Drawing.Size(770, 415);
+            this.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.MinimumSize = new System.Drawing.Size(1144, 608);
             this.Name = "MainForm";
             this.Text = "Favorites";
             this.Resize += new System.EventHandler(this.MainForm_Resize);

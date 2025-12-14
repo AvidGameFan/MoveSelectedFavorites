@@ -16,6 +16,7 @@ namespace MoveSelectedFavorites
 {
     public partial class MainForm : Form
     {
+        const int SECONDS_BETWEEN_FOLDER_AND_FAVORITES = 9; // may be several seconds between creation of folder and favorites plugin writing the favorites list
         public MainForm()
         {
             InitializeComponent();
@@ -23,6 +24,7 @@ namespace MoveSelectedFavorites
             this.DragEnter += new DragEventHandler(MainForm_DragEnter);
             this.DragDrop += new DragEventHandler(MainForm_DragDrop);
 
+            log.Width = this.ClientSize.Width - 467;
 
             openFileDialog1 = new OpenFileDialog()
             {
@@ -33,7 +35,7 @@ namespace MoveSelectedFavorites
 
             favoritesList = new List<string>();
 
-            log.Text += Environment.NewLine + DateTime.Now + ": Starting" + Environment.NewLine;
+            log.AppendText(Environment.NewLine + DateTime.Now + ": Starting" + Environment.NewLine);
         }
         private List<string> favoritesList;
         private void MainForm_DragDrop(object sender, DragEventArgs e)
@@ -54,8 +56,8 @@ namespace MoveSelectedFavorites
                     }
                     catch
                     {
-                        log.Text += Environment.NewLine + DateTime.Now + ": Unable to load file " + files[0] + Environment.NewLine
-                            + "Only Drag-and-drop favorites text files containing seeds." + Environment.NewLine;
+                        log.AppendText(Environment.NewLine + DateTime.Now + ": Unable to load file " + files[0] + Environment.NewLine
+                            + "Only Drag-and-drop favorites text files containing seeds." + Environment.NewLine);
                     }
                 }
             }
@@ -176,7 +178,7 @@ namespace MoveSelectedFavorites
                     {
                         //Invoke(new Action(() =>
                         //{
-                        log.Text += Environment.NewLine + DateTime.Now + ": No files copied - source folder not renamed." + Environment.NewLine;
+                        log.AppendText(Environment.NewLine + DateTime.Now + ": No files copied - source folder not renamed." + Environment.NewLine);
                         //}));
                     }
                 }
@@ -194,16 +196,16 @@ namespace MoveSelectedFavorites
 
             //Done.  
 
-            log.Text += Environment.NewLine + DateTime.Now + ": " + Environment.NewLine;
-            log.Text += "List " + favoritesLabel.Text + Environment.NewLine;
-            log.Text += $"Copied files from {sourceFolder.Text}" + Environment.NewLine;
+            log.AppendText(Environment.NewLine + DateTime.Now + ": " + Environment.NewLine);
+            log.AppendText("List " + favoritesLabel.Text + Environment.NewLine);
+            log.AppendText($"Copied files from {sourceFolder.Text}" + Environment.NewLine);
 
             //sourceFolder.Text = String.Empty; //Could clear the source folder, as reproducing the copy will produce no further results.
             if (labelCopyCount.Text == string.Empty) //if empty, we must have failed to copy.  Could happen if attempting to copy a 2nd time on the same folder.
             {
                 labelCopyCount.Text = "Images to copy not found, or other error.";
             }
-            log.Text += labelCopyCount.Text + Environment.NewLine;
+            log.AppendText(labelCopyCount.Text + Environment.NewLine);
 
             Application.UseWaitCursor = false;
         }
@@ -465,50 +467,79 @@ namespace MoveSelectedFavorites
                             favoritesList.Add(line);
                         }
                         favoritesLabel.Text = "Loaded: " + filePath;
-                        //Process.Start("notepad.exe", filePath);
                     }
                 }
 
-                //attempt to match the closest directory that matches the loaded favorites file.
+                // Extract the timestamp from the filename
                 FileInfo file = new FileInfo(filePath);
-                Regex reg = new Regex("favoriteslist-([0-9]+)*");
+                Regex reg = new Regex(@"favoriteslist-(\d+)");
                 var match = reg.Match(file.Name);
-                string time = match.Groups[1].Value;
-                //Regex reg = new Regex( Date, minus the last 3 characters + @"*");
-                if (time.Length < 3)  //if no date found in the name, we can't process further - just exit
+                if (!match.Success)
                 {
-                    return;
+                    return; // No timestamp found in the filename
                 }
-                reg = new Regex(time.Substring(0, time.Length - 3) + "*");
 
-                //usually, expect saved image numbered folders in the default folder, but in the case of having moved to another drive, allow searching that other drive.  Still requires parent name to be "Stable Diffusion UI".
+                if (!long.TryParse(match.Groups[1].Value, out long fileTimestamp))
+                {
+                    return; // Invalid timestamp in the filename
+                }
+
+                // Search for the closest matching folder based on the timestamp
                 var rootFolder = sourceFolder.Text;
-                //If there is already a folder listed in the source path field, use that as the root to find the next folder (as long as it contains the text Stable Diffusion UI)   
-                if (!String.IsNullOrEmpty(rootFolder) && rootFolder.IndexOf("Stable Diffusion UI")>0)
+                if (!string.IsNullOrEmpty(rootFolder) && rootFolder.Contains("Stable Diffusion UI"))
                 {
                     rootFolder = rootFolder.Substring(0, rootFolder.IndexOf("Stable Diffusion UI"));
                 }
-                //Else, use the user profile folder as the root.
                 else
                 {
                     rootFolder = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
                 }
 
-                    var dirs = Directory.GetDirectories(Path.Combine(rootFolder, "Stable Diffusion UI"))
-                                             .Where(path => reg.IsMatch(path))
-                                             .ToList();
-                // -- generally should match just one, but could match more than one.
-                if (dirs.Count == 1)
+                var dirs = Directory.GetDirectories(Path.Combine(rootFolder, "Stable Diffusion UI"))
+                                    .Select(path => new DirectoryInfo(path))
+                                    .Select(dir =>
+                                    {
+                                        // Extract the numeric part of the folder name
+                                        var folderMatch = Regex.Match(dir.Name, @"(\d+)$");
+                                        if (!folderMatch.Success || !long.TryParse(folderMatch.Value, out long folderTimestamp))
+                                        {
+                                            return (Directory: dir, TimestampDifference: long.MaxValue, FolderTimestamp: 0); // Assign a large difference for invalid folders
+                                        }
+
+                                        // Calculate the absolute difference between timestamps
+                                        long timestampDifference = Math.Abs(fileTimestamp - folderTimestamp);
+                                        return (Directory: dir, TimestampDifference: timestampDifference, FolderTimestamp: folderTimestamp);
+                                    })
+                                    .OrderBy(result => result.TimestampDifference) // Sort by the timestamp difference
+                                    .ToList();
+
+                // Pick the first directory in the sorted list (closest match, meaning nearer to the desired timestamp)
+                //there can be a 6 second delay between folder creation and favorites plugin initialization, however, this could pick up more than one folder.
+                if (dirs.Any() && dirs[0].TimestampDifference <= SECONDS_BETWEEN_FOLDER_AND_FAVORITES*1000)
                 {
-                    sourceFolder.Text = dirs[0];
+                    sourceFolder.Text = dirs[0].Directory.FullName;
+
+                    // Convert the JavaScript timestamp to a readable date
+                    DateTimeOffset folderDate = DateTimeOffset.FromUnixTimeMilliseconds(dirs[0].FolderTimestamp);
+                    string readableDate = folderDate.ToString("yyyy-MM-dd HH:mm:ss");
+
+                    log.AppendText(Environment.NewLine + DateTime.Now + $": Selected folder {sourceFolder.Text} created on {readableDate}." + Environment.NewLine);
+                    if (dirs.Count()>1 && dirs[1].TimestampDifference<8000)
+                    {
+                        log.AppendText(Environment.NewLine + DateTime.Now + $": Another folder found {dirs[1].TimestampDifference/1000} seconds from favorites' time.  Nearer folder chosen." + Environment.NewLine);
+                    }
                 }
             }
             catch (SecurityException ex)
             {
-                MessageBox.Show($"Security error.\n\nError message: {ex.Message}\n\n" +
-                $"Details:\n\n{ex.StackTrace}");
+                MessageBox.Show($"Security error.\n\nError message: {ex.Message}\n\nDetails:\n\n{ex.StackTrace}");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error.\n\nError message: {ex.Message}\n\nDetails:\n\n{ex.StackTrace}");
             }
         }
+
 
         private void checkRenSource_CheckedChanged(object sender, EventArgs e)
         {
