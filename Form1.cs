@@ -254,6 +254,7 @@ namespace MoveSelectedFavorites
             //if file exists, don't copy, and return status of false
             if (File.Exists(newFileName))
             {
+                log.AppendText(Environment.NewLine + DateTime.Now + $": File {newFileName} found in destination folder.  Not copied." + Environment.NewLine);
                 return false;
             }
 
@@ -337,11 +338,43 @@ namespace MoveSelectedFavorites
                                 
                                 //We found the pattern, now obtain the seed.
                                 foundPattern = true;
-                                string seedData = data.Substring(location + searchPattern.Length, 15);
+                                int seedStart = location + searchPattern.Length;
+                                // If there aren't enough characters after the pattern, read more data to cover the seed.
+                                if (seedStart + 15 > data.Length)
+                                {
+                                    char[] extraBuffer = new char[2000];
+                                    int extraRead = reader.Read(extraBuffer, 0, 2000);
+                                    if (extraRead > 0)
+                                        data += new String(extraBuffer, 0, extraRead);
+                                }
+                                string seedData;
+                                // For PNG tEXt chunks, the 4-byte big-endian chunk data length sits
+                                // immediately before "tEXt" in the stream.  Use it to extract exactly
+                                // the right number of value bytes, avoiding false digits in the CRC.
+                                if (searchPattern.Contains('\0') && location >= 4)
+                                {
+                                    // PNG chunk layout: [4-byte length][tEXt][keyword\0][value][4-byte CRC]
+                                    // The length field covers [keyword\0][value] only -- "tEXt" is NOT counted.
+                                    // location points to "tEXt", so the length field is at location - 4.
+                                    int chunkDataLength = ((byte)data[location - 4] << 24) |
+                                                          ((byte)data[location - 3] << 16) |
+                                                          ((byte)data[location - 2] << 8) |
+                                                          ((byte)data[location - 1]);
+                                    // searchPattern = "tEXt" + "seed\0"; only "seed\0" is inside chunkDataLength.
+                                    int chunkTypeLength = "tEXt".Length;                          // 4 - not in chunk data
+                                    int keywordLength = searchPattern.Length - chunkTypeLength;    // "seed\0" = 5 bytes
+                                    int valueLength = chunkDataLength - keywordLength;
+                                    seedData = valueLength > 0
+                                        ? data.Substring(seedStart, Math.Min(valueLength, data.Length - seedStart))
+                                        : data.Substring(seedStart, Math.Min(15, data.Length - seedStart));
+                                }
+                                else
+                                {
+                                    seedData = data.Substring(seedStart, Math.Min(15, data.Length - seedStart));
+                                }
                                 string seed = String.Empty;
                                 foreach (char c in seedData)
                                 {
-                                    //TODO: it is possible that extra numeric characters may appear at the end, and thus the occasional file won't copy.  Need to revisit the file format.
                                     if (c < '0' || c > '9')
                                         break;
                                     seed += c;
